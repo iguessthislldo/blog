@@ -1,0 +1,134 @@
+title: 4 Useful Python Code Snippets
+tags: [python, coding]
+created: !arrow.Arrow '2016-10-05T21:45:02.612669+00:00'
+when: !arrow.Arrow '2016-10-05T22:14:29.177385+00:00'
+last_edited: null
+
+<p>All the snippets have only been tested in Python 3. They may work in Python 2,
+but I haven't checked.</p>
+
+<h3>Simulate a simple probability outcome</h3>
+
+<p>It's a really simple function, in fact, it really doesn't need to be a
+function except for a little convenience. Though I don't know how useful it
+would be outside a video game, unless for example, you really don't like
+your users and your program will only perform a action <i>half of the
+time</i>.</p>
+
+{% code "python", "chance.py" -%}
+from random import uniform
+
+def chance(p):
+    '''Simulates an event with p probability of being true. This is 0 to 1.
+    '''
+    return p >= uniform(0, 1)
+{%- endcode %}
+
+<h3>An anonymous object (à la Javascript)</h3>
+
+<p>In Javascript, OOP is more unconventional than Python (from a C++ and Java
+perspective).  Part of this is objects can be created with what is similar to
+dictionary notation in Python:
+{% icode "javascript" %}{member: 0, time: "Now"}{%endicode%}. Also "blank"
+objects: {% icode "javascript" %}{}{%endicode%}. What I have here is a
+shortcut for creating such objects in Python. I imagine this might be useful
+in testing of code that handles many different kinds of objects.</p>
+
+{% code "python", "anynomous.py" -%}
+class Anonymous:
+    def __init__(self, **attrs):
+        for k, v in attrs.items():
+            setattr(self, k, v)
+
+    def __repr__(self):
+        return '<{}: {}>'.format(self.__class__.__name__, repr(self.__dict__))
+
+    def __str__(self):
+        return repr(self)
+{%- endcode %}
+
+<h3>See if a Python iterable is empty</h3>
+<p>See if a Python iterable (`list`, `dict`, any object that implements
+`__iter__`) is empty. Unfortunately for a generator this means calling next
+which may change its state.</p>
+
+{% code "python", "is_empty.py" -%}
+def has_method(obj, method_name):
+    '''See if object has a method, should work if its assigned to class or
+    to the object itself.
+    '''
+    return hasattr(obj, method_name) and callable(getattr(obj, method_name))
+
+def is_empty(obj):
+    '''Determines if a iter object is empty. First checks if its a generator,
+    then sees if it throws StopIteration the first time. If its not a generator
+    then it just checks the length.
+    '''
+    if not has_method(obj, "__iter__"):
+        raise TypeError("obj does not have an __iter__ method")
+
+    if has_method(obj, "__next__"):
+        try:
+            next(obj)
+        except StopIteration:
+            return True
+        return False
+    else:
+        return len(obj) == 0
+{%- endcode %}
+
+<h3>Set default attributes in a Python class</h3>
+
+<p>This one is my favorite, it is a sort of mini version of
+<a href="https://github.com/hynek/attrs">attrs</a> that I made before hearing
+about it. I can be used to set default attributes for a class which are
+overridable from the constructor.</p>
+
+{% code "python", "defaults.py" -%}
+def defaults(obj, kwargs, **defaults):
+    '''Iterate defaults and keyword arguments, set obj attribute to keys and
+    their values. Use to set default instance attributes and override them
+    with keyword arguments at the same time.
+    '''
+    for k, v in defaults.items():
+        if k not in kwargs:
+            setattr(obj, k, v)
+
+    for k, v in kwargs.items():
+        if k in defaults:
+            setattr(obj, k, v)
+        else:
+            raise ValueError(
+                '"{}" is not a valid keyword argument to {}'.format(
+                    k,
+                    obj.__class__.__name__
+                )
+            )
+{%- endcode %}
+
+<h4>An Example:</h4>
+
+{% code "python", "defaults_example.py" -%}
+class SomeClass:
+    def __init__(self, major_value, **kw):
+        self.major_value = major_value
+        defaults(self, kw,
+            minor_value1 = "Stuff",
+            minor_value2 = "Stuff Stuff"
+        )
+
+    ...
+
+>>> someobj = SomeClass(10)
+>>> someobj.minor_value1
+"Stuff"
+>>> someobj.minor_value2
+"Stuff Stuff"
+>>> anotherobj = SomeClass(11, minor_value2 = "Another Value")
+>>> anotherobj.minor_value2
+"Another Value"
+{%- endcode %}
+
+<p>You can of course remove the error checking after "else raise
+ValueError...", because Python is very flexible and you are free to do
+whatever.</p>

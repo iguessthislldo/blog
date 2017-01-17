@@ -1,0 +1,146 @@
+/*
+ * Gerneral Style
+ */
+
+/* Fonts */
+@import 'https://fonts.googleapis.com/css?family=Roboto';
+@import 'https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css';
+
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.4;
+    margin: 0 auto;
+    max-width: 800px;
+    color: #383838;
+    background-color: #f8f8f8;
+}
+
+h2 {
+    padding: 0px;
+    display: inline-block;
+}
+
+a {
+    text-decoration: none;
+    cursor: pointer;
+    color: #7cafc2;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+header a {
+    color: #383838;
+}
+
+@media screen and (min-width: 800px) {
+    header a {
+        display: inline-block;
+        margin-right: 10px;
+    }
+}
+
+@media screen and (max-width: 799px) {
+    body {
+        margin-left: 10px;
+    }
+
+    header a {
+        margin-right: 10px;
+    }
+}
+
+footer {
+    text-align: right;
+}
+
+img {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/*
+ * Code
+ */
+@font-face {
+    font-family: 'monofur_for_powerline_correRg';
+    src: url('monofurforpowerlinecorrected-webfont.woff2') format('woff2'),
+         url('monofurforpowerlinecorrected-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.codebox {
+    font-family: 'monofur_for_powerline_correRg', 'monospace';
+    background-color: #282828;
+    color: #08f808;
+}
+
+div.codebox {
+    max-width: 90%;
+    overflow: auto;
+    box-shadow: 2px 2px 15px #999;
+    border-radius: 5px;
+    margin-left: 5%;
+    padding: 10px;
+}
+
+div.codebox hr {
+    border: 0;
+    border-bottom: 2px dashed #08f808;
+    /*background: #999;*/
+}
+
+button.code-copy-btn {
+    border: none;
+    float: right;
+    border-radius: 2px;
+    background-color: #08f808;
+    color: #282828;
+}
+
+span.codebox {
+    display: inline;
+    white-space: nowrap;
+    box-shadow: 1px 1px 10px #999;
+    padding: 3px;
+    margin: 0px;
+    border-radius: 5px;
+}
+
+/*
+ * Inline Tags in top of Posts
+ */
+ul.inline_tags {
+    list-style:none;
+    padding-left:0;
+    display: inline;
+}
+
+ul.inline_tags li {
+    display: inline;
+    line-height: 2.0em; 
+}
+
+ul.inline_tags a {
+    color: #383838;
+    border-color: #383838;
+    border-style: solid;
+    border-radius: 5px;
+    border-width: 2px;
+    padding: 2px;
+}
+
+/*
+ * page_control
+ */
+
+.page_control {
+    text-align: center;
+}
+
+.page_control .grey {
+    color: #B8B8B8;
+}
+

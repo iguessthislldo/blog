@@ -1,0 +1,14 @@
+{% extends "page.html" %}
+{%- from 'include_post.html' import include_post -%}
+{%- from 'include_comments.html' import include_comments_link -%}
+{% block title %}iguesthislldo{% endblock %}
+{% block content %}
+{% if latest_post %}
+{{ include_post(latest_post) }}
+<br>
+To view this post's comments or to comment, click here: {{ include_comments_link(latest_post) }}
+<br>
+{% else %}
+<b>Nothing has been posted yet.</b>
+{% endif %}
+{% endblock %}
