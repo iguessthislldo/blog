@@ -1,0 +1,141 @@
+title: "base 121003: Unicode as a Numeral system"
+slug: "base_unicode"
+tags: ['fun', 'math', 'unicode', 'python', 'coding']
+created: !arrow.Arrow '2017-01-18T18:26:55.459842+00:00'
+when: null
+last_edited: null
+
+<img src="/media/PUT_IN_A_REAL_FILE.jpg"/>
+<p style="text-align: right"><a href="">source</a></p>
+<p>I've had this idea for a while,
+<a href="https://en.wikipedia.org/wiki/Unicode">Unicode</a> as a numeral system
+, or more specifically using as much of the characters in the standard as
+possible to represent numbers in a base of the size of that set of characters.
+This is by no means usable in real life, not only because of the size (121,003
+was the final number of "digits" I came up with), but because Unicode has a lot
+of <a href="https://en.wikipedia.org/wiki/Duplicate_characters_in_Unicode">
+characters that either look similar or are the same</a>.
+</p>
+
+<p>
+When making the converter, the real problem was determining the set of the
+characters to use, because Unicode is complicated. To convert to my base
+Unicode, I needed a list that a program could use. My first stop was the
+<a href="http://www.unicode.org/ucd/">Unicode Character Database</a> where I
+got a XML version of the database. After wrangling with
+<a href="https://docs.python.org/3/library/xml.html">python's XML module</a>
+for the first time, I finally got it to get the items after I realized I needed to
+<a href="https://github.com/iguessthislldo/base_unicode/commit/372eff93006506acf9b026ebd0fa0762c7aa9424#diff-b5f3d03f1da0db1eb4bf220dfa348759R57">
+include the xml namespace for the ucd</a>.
+</p>
+
+<p>
+My intial critria was to ignore anything that wasn't printable (not control
+characters like newline ('\n' 000A) or null ('\0' 0000)). This was expanded to
+any character that doesn't have a
+<a href="http://www.unicode.org/reports/tr44/#Property_Invariants">name</a>.
+</p>
+
+<table><tr><td>1</td><td>B</td></tr></table>
+
+<table>
+<tr>
+<th>Description</th>
+<th>Number in base 10</th>
+<th>Output as UTF-8</th>
+<th>Output as images</th>
+</tr>
+
+<tr>
+<td>Zero</td>
+<td>0</td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+
+<tr>
+<td>One</td>
+<td>1</td>
+<td> </td>
+<td>MAKE IMAGES</td>
+</tr>
+
+<tr>
+<td>Two</td>
+<td>2</td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+
+<tr>
+<td>Three</td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+
+<tr>
+<td>Four</td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>MAKE IMAGES</td>
+</tr>
+<!-- Begin Special Numbers -->
+<tr>
+<td><a href="https://www.census.gov/popclock/">Estimated population of the US as of writing</a></td>
+<td>324,426,748</td>
+<td>శ䪹</td>
+<td>MAKE IMAGES</td>
+</tr>
+</table>
+
+
+</p>

@@ -144,3 +144,18 @@ ul.inline_tags a {
     color: #B8B8B8;
 }
 
+/*
+ * Table
+ */
+table {
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+}
