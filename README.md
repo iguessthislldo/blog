@@ -1,2 +1,9 @@
 # blog
-Personal Blog Content formatted for Stablogen
+
+Source of https://fred.hornsey.us.
+
+## Building
+
+```bash
+./build.py build -o
+```

@@ -1,0 +1,5 @@
+furo
+Pillow
+Sphinx
+sphinx-copybutton
+sphinx-design

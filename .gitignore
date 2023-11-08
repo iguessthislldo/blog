@@ -1,1 +1,12 @@
-output
+__pycache__
+
+/.doctrees
+/.venv
+/_build
+/_website
+
+# Generated
+/tags.rst
+/tags/*.rst
+/posts/index.rst
+/posts/*/index.rst
