@@ -14,15 +14,12 @@ from argparse import ArgumentParser
 from pathlib import Path
 import http.server
 import socketserver
-from datetime import date
-from urllib.parse import quote_plus
+from datetime import datetime, timezone
 
 import docutils.nodes
 import docutils.parsers.rst
 import docutils.utils
 import docutils.frontend
-
-from PIL import Image, ImageFont, ImageDraw, ImageColor
 
 
 root = Path(__file__).parent
@@ -53,7 +50,7 @@ direct_copy_path = abs_root / 'root'
 posts_path = Path('posts')
 index_path = Path('index.rst')
 tags_path = Path('tags')
-today = date.today()
+now = datetime.now(timezone.utc)
 
 
 def log(*args, **kwargs):
@@ -66,6 +63,11 @@ def log(*args, **kwargs):
     print(*args, **kwargs, file=f, flush=True)
 
 
+def slugify(*args, **kw):
+    from slugify import slugify as _slugify
+    return _slugify(*args, replacements=[["'", ''], ['"', '']], **kw)
+
+
 def text_to_image(
         text: str,
         font_filepath: str,
@@ -76,6 +78,8 @@ def text_to_image(
         align='center',
         stroke_fill=(0, 0, 0),
         stroke_width=0):
+    from PIL import Image, ImageFont, ImageDraw, ImageColor
+
     font = ImageFont.truetype(font_filepath, size=font_size)
     tmp_img = Image.new('RGBA', (10000, 10000))
     tmp_draw = ImageDraw.Draw(tmp_img)
@@ -197,14 +201,14 @@ def get_text(arg):
 class Tag:
     all_tags = {}
 
-    def __init__(self, name):
-        self.name = name
-        self.slug = quote_plus(self.name)
+    def __init__(self, slug, name):
+        self.slug = slug
+        self.name = name.strip()
         self.ref_name = 'tag-' + self.slug
         self.ref = f':bdg-ref-primary-line:`{self.name} <{self.ref_name}>`'
         self.nonref = f':bdg-primary-line:`{self.name}`'
         self.posts = []
-        self.all_tags[self.name] = self
+        self.all_tags[self.slug] = self
 
     def __repr__(self):
         return f'<Tag: {self.name}>'
@@ -214,17 +218,25 @@ class Tag:
         return self.nonref if draft else self.ref
 
     @classmethod
+    def get_or_create(cls, name):
+        name = name.strip()
+        slug = slugify(name)
+        if slug in cls.all_tags:
+            tag = cls.all_tags[slug]
+        else:
+            tag = Tag(slug, name)
+        return tag
+
+    @classmethod
     def process_tag_str(cls, post, tag_str):
         tags = []
-        for name in tag_str.split(','):
-            name = name.strip()
-            if name in cls.all_tags:
-                tag = cls.all_tags[name]
-            else:
-                tag = Tag(name)
-                cls.all_tags[tag.name] = tag
-            tag.posts.append(post)
-            tags.append(tag)
+        tag_str = tag_str.strip()
+        if tag_str:
+            for name in tag_str.split(','):
+                tag = Tag.get_or_create(name)
+                if tag not in tags:
+                    tag.posts.append(post)
+                    tags.append(tag)
         return tags
 
     @classmethod
@@ -235,7 +247,6 @@ class Tag:
 
 class Post:
     all_posts = []
-    all_years = set()
 
     def __init__(self, path, title, doc_info, include_drafts=True):
         self.path = path
@@ -244,18 +255,16 @@ class Post:
         self.ref = f':doc:`/{self.link}`'
         self.draft = 'orphan' in doc_info
         self.summary = doc_info.get('summary')
-        self.date = None
-        if 'date' in doc_info:
-            self.date = date.fromisoformat(doc_info['date'])
-            year = self.date.year
-        else:
-            year = today.year
+        self.created = doc_info.get('created')
+        if self.created is not None:
+            self.created = datetime.fromisoformat(self.created)
+        self.published = doc_info.get('published')
+        if self.published is not None:
+            self.published = datetime.fromisoformat(self.published)
         self.tags = []
 
         if self.draft and not include_drafts:
             return
-
-        self.all_years.add(str(year))
 
         if 'tags' in doc_info:
             self.tags = Tag.process_tag_str(self, doc_info['tags'])
@@ -267,6 +276,11 @@ class Post:
             info.append('    :material-regular:`sell` ' +
                 ' '.join([tag.ref for tag in self.tags]))
 
+    def dt(self):
+        if self.published is None:
+            return self.created
+        else:
+            return self.published
 
     def post_info(self, for_post=False):
         i = '    '
@@ -284,8 +298,8 @@ class Post:
             info.append(title)
         if self.summary and not for_post:
             info.append(f'{i}*{self.summary}*\n')
-        if self.date is not None:
-            info.append(f'{i}:material-regular:`calendar_month` {self.date}')
+        date = self.dt().date()
+        info.append(f'{i}:material-regular:`calendar_month` {date}')
         if self.tags:
             info.append(i + ':material-regular:`sell` ' +
                 ' '.join([tag.get_ref(self.draft) for tag in self.tags]))
@@ -293,13 +307,19 @@ class Post:
         return info
 
     @classmethod
+    def get_years(cls, posts=None, year=None, reverse=True):
+        years = set()
+        for post in cls.all_posts:
+            years |= {post.dt().year}
+        return years
+
+    @classmethod
     def get_sorted(cls, posts=None, year=None, reverse=True):
         posts = Post.all_posts if posts is None else posts
         if year is not None:
-            posts = filter(lambda p: str(p.date.year) == year, posts)
+            posts = filter(lambda p: p.dt().year == year, posts)
         posts = sorted(posts, key=lambda p: p.title)
-        return sorted(posts,
-            key=lambda p: p.date if p.date is not None else today, reverse=reverse)
+        return sorted(posts, key=lambda p: p.dt(), reverse=reverse)
 
 
 def insert_into_file(path, marker, lines):
@@ -331,6 +351,11 @@ def insert_into_file(path, marker, lines):
     path.write_text('\n'.join(rewrite))
 
 
+def header(title):
+    h = '#' * len(title) + '\n'
+    return h + title + '\n' + h
+
+
 def write_list_file(path, title, items=[], toc=[], ref=''):
     lines = [
         ':orphan:',
@@ -338,8 +363,7 @@ def write_list_file(path, title, items=[], toc=[], ref=''):
     ]
     if ref:
         lines.append(f'.. _{ref}:\n')
-    h = '#' * len(title) + '\n'
-    lines.append(h + title + '\n' + h)
+    lines.append(header(title))
     if toc:
         lines.append('.. toctree::')
         if items:
@@ -354,14 +378,12 @@ def write_list_file(path, title, items=[], toc=[], ref=''):
     path.write_text('\n'.join(lines + items))
 
 
-def generate_blog(include_drafts):
-    log('Generating content for blog (tags, recent posts, etc.)...')
-
-    # Process and Update Posts
+def load_posts(include_drafts=False, verbose=False):
     for path in posts_path.glob('*/*.rst'):
         if path.name == 'index.rst':
             continue
-        print(path)
+        if verbose:
+            print(path)
         rst_doc = parse_rst(path)
         dom = rst_doc.asdom()
 
@@ -370,7 +392,8 @@ def generate_blog(include_drafts):
         for title_node in dom.getElementsByTagName('title'):
             title = get_text([title_node])
             break
-        print(' ', title)
+        if verbose:
+            print(' ', title)
         if title is None:
             sys.exit('ERROR: post is missing title')
 
@@ -383,19 +406,69 @@ def generate_blog(include_drafts):
                 doc_info[name] = value
 
         post = Post(path, title, doc_info, include_drafts=include_drafts)
-        print(' ', post.link)
-        if not post.draft and post.date is not None and post.path.parent.name != str(post.date.year):
-            sys.exit(f'ERROR: post is in {post.path.parent.name}, but is marked {post.date.year}')
+        if verbose:
+            print(' ', post.link)
+        if not post.draft and post.published is not None and post.path.parent.name != str(post.published.year):
+            sys.exit(f'ERROR: post is in {post.path.parent.name}, but is marked {post.published.year}')
         if not post.draft:
-            if post.date is None:
-                sys.exit('ERROR: post to publish is missing date')
+            if post.created is None:
+                sys.exit('ERROR: post to publish is missing created')
+            if post.published is None:
+                sys.exit('ERROR: post to publish is missing published')
             if not post.tags:
                 sys.exit('ERROR: post to publish is missing tags')
-            if post.summary is None:
+            if not post.summary:
                 sys.exit('ERROR: post to publish is missing summary')
 
-    # Write post info back
-    insert_into_file(path, 'post-info', post.post_info(for_post=True))
+        # Write post info back
+        insert_into_file(path, 'post-info', post.post_info(for_post=True))
+
+
+def new_post(title):
+    load_posts(include_drafts=True)
+    year_path = posts_path / str(now.year)
+    year_path.mkdir(exist_ok=True)
+    path = year_path / (slugify(title) + '.rst')
+    if path.exists():
+        sys.exit(f'{repr(title)} would go to {path}, which already exists!')
+
+    path.write_text('\n'.join([
+        f':created: {now}',
+        ':orphan:',
+        ':tags:',
+        ':summary:',
+        '',
+        header(title),
+        '',
+        '.. post-info-start',
+        '.. post-info-end',
+        '',
+        'Content goes here',
+    ]))
+    print('Created', path)
+
+
+def publish_post(post_path):
+    log(f'Publishing {post_path}')
+
+    new_lines = [f':published: {now}']
+    inspect_lines = True
+    for line in post_path.read_text().split('\n'):
+        write_line = True
+        if inspect_lines:
+            if line == ':orphan:' or line.startswith(':published'):
+                write_line = False
+            elif line == '.. post-info-start':
+                inspect_lines = False
+        if write_line:
+            new_lines.append(line)
+    post_path.write_text('\n'.join(new_lines))
+
+
+def generate_blog(include_drafts):
+    log('Generating content for blog (tags, recent posts, etc.)...')
+
+    load_posts(include_drafts, verbose=True)
 
     # Write recent post lists to index.rst
     lines = []
@@ -405,8 +478,8 @@ def generate_blog(include_drafts):
 
     # Write posts.rst
     posts_toc = []
-    for year in sorted(Post.all_years, reverse=True):
-        year_path = posts_path / year
+    for year in sorted(Post.get_years(), reverse=True):
+        year_path = posts_path / str(year)
         lines = []
         year_toc = []
         for post in Post.get_sorted(year=year, reverse=False):
@@ -423,7 +496,7 @@ def generate_blog(include_drafts):
     lines = []
     tags_toc = []
     for tag in Tag.get_sorted():
-        lines.append(tag.ref + ': ' + str(len(tag.posts)) + ' post(s)')
+        lines.append(tag.ref + ' ' + str(len(tag.posts)) + ' post(s)')
         lines.append('')
         tags_toc.append(str(tags_path / tag.slug))
     write_list_file(tags_path.with_suffix('.rst'), 'Tags', lines, toc=tags_toc)
@@ -539,11 +612,6 @@ class DocEnv:
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser(description=__doc__)
-    arg_parser.add_argument('actions', nargs='+', choices=DocEnv.all_actions())
-    arg_parser.add_argument('-o', '--open',
-        action='store_true',
-        help='Open result after building'
-    )
     arg_parser.add_argument('--build',
         metavar='PATH', type=Path, default=default_build_path,
         help='Where to place the results. Default is %(default)s'
@@ -556,10 +624,30 @@ if __name__ == '__main__':
         action='store_true',
         help='Include draft posts'
     )
-    args = arg_parser.parse_args()
+    subcmds = arg_parser.add_subparsers(required=True, dest='subcmd')
 
+    do_subcmd = subcmds.add_parser('do')
+    do_subcmd.add_argument('actions', nargs='+', choices=DocEnv.all_actions())
+    do_subcmd.add_argument('-o', '--open',
+        action='store_true',
+        help='Open result after building'
+    )
+
+    new_subcmd = subcmds.add_parser('new')
+    new_subcmd.add_argument('title', metavar='TITLE')
+
+    pub_subcmd = subcmds.add_parser('pub')
+    pub_subcmd.add_argument('post_path', metavar='POST_PATH', type=Path)
+
+    args = arg_parser.parse_args()
     doc_env = DocEnv(args.venv, args.build, drafts=args.drafts)
     doc_env.setup()
-    doc_env.do(args.actions, open_result=args.open)
+    if args.subcmd == 'do':
+        doc_env.do(args.actions, open_result=args.open)
+    elif args.subcmd == 'new':
+        new_post(args.title)
+    elif args.subcmd == 'pub':
+        publish_post(args.post_path)
+        doc_env.do(['html'])
 
 # vim: expandtab:ts=4:sw=4

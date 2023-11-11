@@ -1,5 +1,6 @@
 :tags: python, coding
-:date: 2016-10-05
+:created: 2016-10-05T21:45:02.612669+00:00
+:published: 2016-10-05T22:14:29.177385+00:00
 :summary: Some Python snippets I was apparently proud of
 
 #############################

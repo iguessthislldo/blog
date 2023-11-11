@@ -1,5 +1,6 @@
 furo
 Pillow
+python-slugify
 Sphinx
 sphinx-copybutton
 sphinx-design

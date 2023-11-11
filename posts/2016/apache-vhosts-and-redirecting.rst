@@ -1,5 +1,6 @@
 :tags: apache, webdev
-:date: 2016-08-03
+:created: 2016-08-03T00:00:00+00:00
+:published: 2016-08-03T00:00:00+00:00
 :summary: Rambling about an experience with configuring Apache
 
 #############################

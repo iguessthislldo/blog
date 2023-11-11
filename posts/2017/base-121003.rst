@@ -1,5 +1,5 @@
 :orphan:
-:date: 2017-01-18
+:created: 2017-01-18T18:26:55.459842+00:00
 :tags: math, unicode, python, coding
 :summary: Turning Unicode into a number system
 
