@@ -2,17 +2,12 @@
 
 The personal blog of :doc:`Fred Hornsey <about>` about programming, retrocomputing, and I guess whatever else I feel like writing about.
 
-    "Yeah, I guess this'll do."
-
-    -- Me probably right after many questionable decisions
-
 .. toctree::
     :hidden:
     :maxdepth: 1
 
     posts/index
     tags
-    projects/index
     about
 
 ************
