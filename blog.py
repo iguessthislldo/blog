@@ -15,6 +15,7 @@ from pathlib import Path
 import http.server
 import socketserver
 from datetime import datetime, timezone
+from textwrap import dedent
 
 import docutils.nodes
 import docutils.parsers.rst
@@ -44,6 +45,7 @@ theme_fg = hex_to_rgb(theme_fg_hex)
 theme_bg = hex_to_rgb(theme_bg_hex)
 templates_path = abs_root / '_templates'
 direct_copy_path = abs_root / 'root'
+static_path = abs_root / '_static'
 
 # For blog generation
 # TODO: Support building from somewhere other than this dir?
@@ -106,10 +108,10 @@ def make(text, font_size, margin, fg_color=theme_fg, bg_color=theme_bg, **kw):
     return text_to_image(text, str(abs_root / 'monofur.ttf'), font_size, fg_color, bg_color, margin, **kw)
 
 
-def save(img, name, resize=None, **kw):
+def save(img, name, resize=None, dst=direct_copy_path, **kw):
     if resize is not None:
         img = img.resize((resize, resize))
-    img.save(str(direct_copy_path / name), **kw)
+    img.save(str(dst / name), **kw)
 
 
 def generate_icons():
@@ -117,7 +119,8 @@ def generate_icons():
 
     # Logo
     def make_logo(kind, fg_color):
-        save(make('%' + name, 46, (10, 10), fg_color=fg_color, bg_color=transparent), f'logo-{kind}.png')
+        save(make('%' + name, 46, (10, 10), fg_color=fg_color, bg_color=transparent),
+            f'logo-{kind}.png', dst=static_path)
 
     make_logo('light', fg_color=black)
     make_logo('dark', fg_color=theme_fg)
@@ -133,50 +136,38 @@ def generate_icons():
     save(icon, 'apple-touch-icon.png', resize=180)
 
     # Text Files
-    (direct_copy_path / 'browserconfig.xml').write_text('''\
-    <?xml version="1.0" encoding="utf-8"?>
-    <browserconfig>
-        <msapplication>
-            <tile>
-                <square150x150logo src="/mstile-150x150.png"/>
-                <TileColor>''' + theme_bg_hex + '''</TileColor>
-            </tile>
-        </msapplication>
-    </browserconfig>
-    ''')
-    (direct_copy_path / 'site.webmanifest').write_text('''\
-    {
-        "name": "''' + name + '''",
-        "short_name": "''' + name + '''",
-        "icons": [
-            {
-                "src": "/android-chrome-192x192.png",
-                "sizes": "192x192",
-                "type": "image/png"
-            },
-            {
-                "src": "/android-chrome-512x512.png",
-                "sizes": "512x512",
-                "type": "image/png"
-            }
-        ],
-        "theme_color": "''' + theme_fg_hex + '''",
-        "background_color": "''' + theme_bg_hex + '''",
-        "display": "browser"
-    }
-    ''')
-
-    (templates_path / 'layout.html').write_text('''\
-    {% extends "!layout.html" %}
-    {% block extrahead %}
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-        <link rel="manifest" href="/site.webmanifest">
-        <meta name="msapplication-TileColor" content="''' + theme_bg_hex + '''">
-        <meta name="theme-color" content="''' + theme_fg_hex + '''">
-    {% endblock %}
-    ''')
+    (direct_copy_path / 'browserconfig.xml').write_text(dedent('''\
+        <?xml version="1.0" encoding="utf-8"?>
+        <browserconfig>
+            <msapplication>
+                <tile>
+                    <square150x150logo src="/mstile-150x150.png"/>
+                    <TileColor>''' + theme_bg_hex + '''</TileColor>
+                </tile>
+            </msapplication>
+        </browserconfig>
+        '''))
+    (direct_copy_path / 'site.webmanifest').write_text(dedent('''\
+        {
+            "name": "''' + name + '''",
+            "short_name": "''' + name + '''",
+            "icons": [
+                {
+                    "src": "/android-chrome-192x192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                },
+                {
+                    "src": "/android-chrome-512x512.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ],
+            "theme_color": "''' + theme_fg_hex + '''",
+            "background_color": "''' + theme_bg_hex + '''",
+            "display": "browser"
+        }
+        '''))
 
 
 def parse_rst(path: Path) -> docutils.nodes.document:

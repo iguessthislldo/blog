@@ -3,8 +3,13 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import json
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
+with open('root/site.webmanifest') as f:
+    manifest = json.load(f)
 
 project = 'iguessthislldo'
 author = 'Fred Hornsey'
@@ -32,7 +37,7 @@ html_sort_title = project
 html_use_index = False
 html_copy_source = False
 
-html_static_path = ['_static', 'root']
+html_static_path = ['_static']
 html_extra_path = ['root']
 
 html_theme_options = {
@@ -52,7 +57,9 @@ html_theme_options = {
 html_context = {
     'sidebar_links': {
         'GitHub': github,
-    }
+    },
+    'bg_theme': manifest['background_color'],
+    'fg_theme': manifest['theme_color'],
 }
 html_sidebars = {
     '**': [
