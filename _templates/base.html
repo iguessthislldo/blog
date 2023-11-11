@@ -8,3 +8,14 @@
     <meta name="msapplication-TileColor" content="#282828">
     <meta name="theme-color" content="#00ff00">
 {% endblock %}
+
+{% block body %}
+    <!-- default to dark mode -->
+    <script>
+        if (localStorage.getItem("theme") === null) {
+            localStorage.setItem("theme", "dark");
+        }
+    </script>
+
+    {{ super() }}
+{% endblock %}
