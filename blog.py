@@ -16,6 +16,8 @@ import http.server
 import socketserver
 from datetime import datetime, timezone
 from textwrap import dedent
+import time
+import mimetypes
 
 import docutils.nodes
 import docutils.parsers.rst
@@ -37,6 +39,8 @@ def hex_to_rgb(s):
 
 
 name = 'iguessthislldo'
+url = 'fred.hornsey.us'
+aws = 's3-website-us-east-1.amazonaws.com'
 black = (0, 0, 0)
 transparent = 0
 theme_fg_hex = '#00ff00'
@@ -68,6 +72,17 @@ def log(*args, **kwargs):
 def slugify(*args, **kw):
     from slugify import slugify as _slugify
     return _slugify(*args, replacements=[["'", ''], ['"', '']], **kw)
+
+
+def get_mimetype(path):
+    mimetype, _ = mimetypes.guess_type(path)
+    if mimetype is None:
+        try:
+            path.read_text()
+            mimetype = 'text/plain'
+        except UnicodeDecodeError:
+            mimetype = 'binary/octet-stream'
+    return mimetype
 
 
 def text_to_image(
@@ -599,6 +614,68 @@ class DocEnv:
         with socketserver.TCPServer(("", port), Handler) as httpd:
             print(f'Serving http://127.0.0.1:{port}')
             httpd.serve_forever()
+
+
+    def do_upload(self):
+        self.rm_build()
+        self.drafts = False
+        self.do(['html'], because_of='upload')
+
+        log('Uploading...')
+
+        import boto3
+
+        # Get files and MIME types
+        files = []
+        for path in self.html_output.glob('**/*'):
+            if not path.is_file():
+                continue
+            files.append((path, str(path.relative_to(self.html_output)), get_mimetype(path)))
+
+        # Replace files on S3
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket(url)
+        bucket.objects.delete()
+        for path, s3_key, mimetype in files:
+            log('Upload', path)
+            log(f'  to {url}/{s3_key}')
+            log(f'  {mimetype}')
+            bucket.upload_file(str(path), s3_key, ExtraArgs={'ContentType': mimetype})
+
+        log('Updating CDN...')
+
+        # Get Cloudfront Distribution
+        cloudfront = boto3.client('cloudfront')
+        bucket_origin = url + '.' + aws
+        cf_distro_id = None
+        paginator = cloudfront.get_paginator('list_distributions')
+        page_iterator = paginator.paginate()
+        for page in page_iterator:
+            for distribution in page['DistributionList']['Items']:
+                for cf_origin in distribution['Origins']['Items']:
+                    log('Origin found {}'.format(cf_origin['DomainName']))
+                    if bucket_origin == cf_origin['DomainName']:
+                        cf_distro_id = distribution['Id']
+                        log("The CF distribution ID for {} is {}".format(url, cf_distro_id))
+        if cf_distro_id is None:
+            sys.exit(f'ERROR: Could not find cloudfront distribution for {url}')
+
+        # Invalidate files on Cloudfront CDN
+        # TODO: Only invalidate changed files?
+        s3_keys = list(map(lambda t: '/' + t[1], files))
+        s3_keys.append('/')
+        invalidation_id = cloudfront.create_invalidation(
+            DistributionId=cf_distro_id,
+            InvalidationBatch={
+            'Paths': {
+                'Quantity': len(s3_keys),
+                'Items': s3_keys,
+            },
+            'CallerReference': str(time.time()),
+        })['Invalidation']['Id']
+        log(f'Submitted invalidation {invalidation_id}')
+
+        log('Done')
 
 
 if __name__ == '__main__':
